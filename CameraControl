@@ -1,0 +1,147 @@
+using UnityEngine;
+
+
+public class CameraControl : MonoBehaviour
+{
+    Camera cam;//Componente camera de la cam principal (esta cam)
+
+    [Header ("Zoom Con Ruedita del mouse")]
+    public float velZoom=111;//Velocidad del zoom
+    private float smoothscroll;//(no cambiar)
+    float smoothTime = 0.3f;//(no cambiar)
+    float yVelocity = 0.0f;//(no cambiar)
+
+    [Header ("Rotación")]
+    public float velRot=77;//velocidad de rotación;
+    float rotX = 0;//(no cambiar)
+    float rotY = 0;//(no cambiar)
+    Vector2 puntoactual=Vector2.zero;//(no cambiar)
+    Vector2 puntoInicial=Vector2.zero;//(no cambiar)
+
+    [Header("Movimiento")]
+    public float velY=7;//velocidad de movimiento -arriba/abajo-, configurable desde el inspector.
+    public float velZ=7;//velocidad de movimiento -adelante/atrás-, configurable desde el inspector.
+    public float velX=7;//velocidad de movimiento -izquierda/derecha-, configurable desde el inspector.
+    float acelX = 1f;//aceleración en x (no cambiar)
+    float acelZ = 1f;//aceleración en z (no cambiar)
+    float acelY = 1f;//aceleración en y (no cambiar)
+
+    [Header ("Botones Configurables")]
+    public KeyCode subir=KeyCode.LeftShift;//Tecla para subir
+    public KeyCode bajar=KeyCode.LeftControl;//Tecla para bajar
+
+    [Header("Para Tiempo Escalado")]
+    float timeScale;//(no cambiar)
+    float time;//(no cambiar)
+
+    private void Start()
+    {
+        cam = GetComponent<Camera>();//obtenemos el componente camera.
+    }
+    
+    private void Update()
+    {  
+        timeScale=Time.timeScale;//Almacenamos la escala actual del tiempo.
+        time=Time.deltaTime;//Almacenamos el deltatime actual.
+
+        //Zoom, igual que mover adelante atrás, pero acelerado... 
+        Zoom();
+        
+        //Rotar presionando botón derecho del mouse y moviendo el mouse:
+        Rotar();
+
+        //Movimiento -Izquierda/Derecha- con flechas o teclas "A" y "D":
+        float ad = Input.GetAxis("Horizontal");
+        if(ad==0)acelX=1;
+        else MoverHorizontal(ad);
+
+        //Movimiento -adelante/atrás- con flechas o teclas "W" y "S":
+        float ws = Input.GetAxis("Vertical");
+        if(ws==0)acelZ=1;
+        else MoverAdelanteAtras(ws);
+
+        //Movimiento -Arriba/Abajo- con teclas configurables desde el inspector -Subir(Arriba) y Bajar(Abajo)-:
+        int ud=DetectarTeclasSubirBajar();
+        if(ud==0)acelY=1;
+        else MoverVertical(ud);
+
+            
+    }
+    void Zoom()//Hace zoom con la ruedita del mouse (Movimiento adelante atrás):
+    {
+        float scrolldata;
+        scrolldata = Input.GetAxis("Mouse ScrollWheel") * velZoom;
+        smoothscroll = Mathf.SmoothDamp(smoothscroll, scrolldata, ref yVelocity, smoothTime);
+        transform.position += transform.forward * scrolldata*time*30;
+    }
+    void Rotar()//Rota cuando mantiene presionado el botón derecho del mouse y mueve el mouse.
+    {
+        if (Input.GetMouseButtonDown(1))
+        {
+            puntoInicial = Input.mousePosition;
+        }
+
+        if (Input.GetMouseButton(1))
+        {
+            puntoactual = Input.mousePosition;
+
+            if (timeScale != 0)
+            {
+                rotX = time * (puntoInicial.x - puntoactual.x) / (timeScale);
+                rotY = time * (puntoInicial.y - puntoactual.y) / (timeScale);
+            }
+            Vector3 angles = transform.eulerAngles;
+            angles.x += rotY * velRot;
+            angles.y -= rotX * velRot;
+            angles.z = 0;
+            transform.eulerAngles = angles;
+            puntoInicial = puntoactual;
+        }
+    }
+
+    //Movimiento -Arriba/Abajo- con teclas configurables desde el inspector -Subir(Arriba) y Bajar(Abajo)-:
+    void MoverVertical(float input)
+    {
+        acelY += acelY * (time / timeScale);
+        float velocidadMovimiento = acelY * velY* input;
+        Vector3 movimiento = Vector3.up * velocidadMovimiento * time;
+        transform.position += movimiento;
+    }
+
+    //Movimiento -Izquierda/Derecha- con flechas o teclas "A" y "D":
+    void MoverHorizontal(float input)
+    {
+        acelX += acelX * (time / timeScale);
+        float velocidadMovimiento = acelX * velX* input;
+        Vector3 movimiento = transform.right * velocidadMovimiento * time;
+        transform.position += movimiento;
+    }
+
+    //Movimiento -adelante/atrás- con flechas o teclas "W" y "S":
+    void MoverAdelanteAtras(float input)
+    {
+        acelZ += acelZ * (time / timeScale);
+        float velocidadMovimiento = acelZ * velZ* input;
+        Vector3 movimiento = transform.forward * velocidadMovimiento * time;
+        transform.position += movimiento;
+    }
+
+    //El siguiente método, devuelve:
+    // 1 si presionas la tecla configurable desde el inspector "subir",
+    //-1 si presionas la tecla configuravle desde el inspector "bajar",
+    // y 0 si no presionas ninguno de los dos:
+    int DetectarTeclasSubirBajar()
+    {
+        int shift = 0;
+        if (Input.GetKey(subir))
+        {
+            shift = 1;
+        }
+        else if (Input.GetKey(bajar))
+        {
+            shift = -1;
+        }
+        return shift;
+    }
+}
+     
